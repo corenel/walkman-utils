@@ -114,3 +114,16 @@ def is_extension(filepath, ext):
         ext = [ext]
     filename, fileext = os.path.splitext(filepath)
     return fileext in ext
+
+
+def get_lyrics_filename(track):
+    """
+    Get lyrics filename of given track
+
+    :param track: given track
+    :return: lyrics filename
+    :rtype: str
+    """
+    title = track.title().replace('/', '&')
+    artist = track.artist().replace('/', '&')
+    return "{}) - {}.lrcx".format(title, artist)
