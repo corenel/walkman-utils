@@ -13,6 +13,27 @@ def get_itunes_playlists():
     return app('iTunes').user_playlists()
 
 
+def get_tracks_in_playlist(playlists):
+    """
+    Get tracks of desired playlists in iTunes
+
+    :param playlists: name of desired playlists
+    :type playlists: str or list[str]
+    :return: list of file path
+    :rtype: list
+    """
+    if isinstance(playlists, str):
+        playlists = [playlists]
+    tracks_in_playlist = []
+
+    for playlist in get_itunes_playlists():
+        if playlist.name() in playlists:
+            for track in playlist.file_tracks():
+                tracks_in_playlist.append(track)
+
+    return tracks_in_playlist
+
+
 def get_files_in_playlist(playlists):
     """
     Get file path of desired playlists in iTunes
@@ -22,15 +43,8 @@ def get_files_in_playlist(playlists):
     :return: list of file path
     :rtype: list[str]
     """
-    if isinstance(playlists, str):
-        playlists = [playlists]
-    files_in_playlist = []
-
-    for playlist in get_itunes_playlists():
-        if playlist.name() in playlists:
-            for track in playlist.file_tracks():
-                files_in_playlist.append(track.location().path)
-
+    tracks_in_playlist = get_tracks_in_playlist(playlists)
+    files_in_playlist = [t.location().path for t in tracks_in_playlist]
     return files_in_playlist
 
 
@@ -48,12 +62,14 @@ def split_filepath(files):
     return common_prefix, relative_paths
 
 
-def scan_directory(target):
+def scan_directory(target, extension):
     """
     Scan given directory and get file lists
 
     :param target: target directory
     :type target: str
+    :param extension: valid extension
+    :type extension: str or list[str]
     :return: relative file lists
     :rtype: list[str]
     """
@@ -64,7 +80,8 @@ def scan_directory(target):
     for root, dirs, files in os.walk(target):
         curr = root.replace(target, '')
         for f in files:
-            relative_path.append(os.path.join(curr, f))
+            if is_extension(f, extension):
+                relative_path.append(os.path.join(curr, f))
 
     return relative_path
 
@@ -112,18 +129,36 @@ def is_extension(filepath, ext):
     """
     if isinstance(ext, str):
         ext = [ext]
-    filename, fileext = os.path.splitext(filepath)
-    return fileext in ext
+    filename, file_ext = os.path.splitext(filepath)
+    return file_ext in ext
 
 
-def get_lyrics_filename(track):
+def get_lyrics_file(track, lyrics_dir):
     """
-    Get lyrics filename of given track
+    Get lyrics file of given track
 
     :param track: given track
+    :param lyrics_dir: root directory of lyrics files
+    :type lyrics_dir: str
     :return: lyrics filename
     :rtype: str
     """
-    title = track.title().replace('/', '&')
+    title = track.name().replace('/', '&')
     artist = track.artist().replace('/', '&')
-    return "{}) - {}.lrcx".format(title, artist)
+    lrc_file = os.path.join(lyrics_dir, "{} - {}.lrcx".format(title, artist))
+    if os.path.exists(lrc_file):
+        return lrc_file
+    else:
+        return None
+
+
+def parse_lyrics(filepath):
+    """
+    Parse lyrics file and convert it to walkman-compatible format
+
+    :param filepath: path to lyrics file
+    :type filepath: str
+    :return: lyrics in walkman-compatible format
+    :rtype: str
+    """
+    raise NotImplementedError
