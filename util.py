@@ -205,3 +205,10 @@ def struct_lyrics(tracks, src_dir, dst_dir):
                 os.makedirs(os.path.dirname(lrc_dst))
             progress.set_description('Copying {}'.format(os.path.basename(lrc_dst)))
             shutil.copy2(lrc_src, lrc_dst)
+
+
+def generate_playlist_with_prefix(songs, prefix):
+    _, songs_rel = split_filepath(songs)
+    songs_with_prefix = [os.path.join(prefix, song).replace('/', '\\')
+                         for song in songs_rel]
+    return songs_with_prefix

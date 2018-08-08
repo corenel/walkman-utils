@@ -1,7 +1,6 @@
 import os
 import util
 import setting
-import shutil
 
 from tqdm import tqdm
 
@@ -20,6 +19,17 @@ def sync_playlist(playlists, walkman_dir, remove_unmatched=False):
     util.sync_filelists(to_be_updated, to_be_removed,
                         src_dir=itunes_folder, dst_dir=walkman_dir,
                         remove_unmatched=remove_unmatched)
+
+
+def create_m3u_playlist(playlists, walkman_dir, walkman_prefix):
+    progress = tqdm(playlists)
+    for playlist in progress:
+        songs_in_playlists = util.get_files_in_playlist(playlist)
+        songs_with_prefix = util.generate_playlist_with_prefix(songs_in_playlists,
+                                                               walkman_prefix)
+        with open(os.path.join(walkman_dir, '{}.m3u'.format(playlist)), 'w') as f:
+            f.write('\n'.join(songs_with_prefix))
+            f.write('\n')
 
 
 def create_lyrics_dir(playlists, lyrics_dir, lyrics_source_dir):
@@ -46,12 +56,16 @@ def sync_lyrics(lyrics_dir, walkman_dir, remove_unmatched=False):
 
 
 if __name__ == '__main__':
-    sync_playlist(playlists=setting.PLAYLISTS,
-                  walkman_dir=setting.WALKMAN_DIR)
+    # sync_playlist(playlists=setting.playlists,
+    #               walkman_dir=setting.walkman_dir)
+
+    create_m3u_playlist(playlists=setting.PLAYLISTS,
+                        walkman_dir=setting.WALKMAN_DIR,
+                        walkman_prefix=setting.WALKMAN_PLAYLIST_PREFIX)
 
     # create_lyrics_dir(playlists=setting.PLAYLISTS,
     #                   lyrics_dir=setting.LYRICS_DIR,
     #                   lyrics_source_dir=setting.LYRICS_SOURCE_DIR)
 
-    sync_lyrics(lyrics_dir=setting.LYRICS_DIR,
-                walkman_dir=setting.WALKMAN_DIR)
+    # sync_lyrics(lyrics_dir=setting.LYRICS_DIR,
+    #             walkman_dir=setting.WALKMAN_DIR)
