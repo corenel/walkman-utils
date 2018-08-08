@@ -1,6 +1,8 @@
 import os
+import shutil
 
 from appscript import app
+from tqdm import tqdm
 
 
 def get_itunes_playlists():
@@ -114,6 +116,25 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
             to_be_ignored.append(f)
 
     return to_be_updated, to_be_removed, to_be_ignored
+
+
+def sync_filelists(to_be_updated, to_be_removed,
+                   src_dir, dst_dir,
+                   remove_unmatched=False):
+    progress = tqdm(sorted(to_be_updated))
+    for music in progress:
+        progress.set_description('Updating {}'.format(os.path.basename(music)))
+        target_path = os.path.join(dst_dir, os.path.dirname(music))
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+        shutil.copy2(os.path.join(src_dir, music), target_path)
+
+    if remove_unmatched:
+        progress = tqdm(sorted(to_be_removed))
+        for music in progress:
+            progress.set_description('Removing {}'.format(os.path.basename(music)))
+            target_path = os.path.join(dst_dir, os.path.dirname(music))
+            os.remove(target_path)
 
 
 def is_extension(filepath, ext):
