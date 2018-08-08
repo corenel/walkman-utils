@@ -122,18 +122,18 @@ def sync_filelists(to_be_updated, to_be_removed,
                    src_dir, dst_dir,
                    remove_unmatched=False):
     progress = tqdm(sorted(to_be_updated))
-    for music in progress:
-        progress.set_description('Updating {}'.format(os.path.basename(music)))
-        target_path = os.path.join(dst_dir, os.path.dirname(music))
+    for file in progress:
+        progress.set_description('Updating {}'.format(os.path.basename(file)))
+        target_path = os.path.join(dst_dir, os.path.dirname(file))
         if not os.path.exists(target_path):
             os.makedirs(target_path)
-        shutil.copy2(os.path.join(src_dir, music), target_path)
+        shutil.copy2(os.path.join(src_dir, file), target_path)
 
     if remove_unmatched:
         progress = tqdm(sorted(to_be_removed))
-        for music in progress:
-            progress.set_description('Removing {}'.format(os.path.basename(music)))
-            target_path = os.path.join(dst_dir, os.path.dirname(music))
+        for file in progress:
+            progress.set_description('Removing {}'.format(os.path.basename(file)))
+            target_path = os.path.join(dst_dir, os.path.dirname(file))
             os.remove(target_path)
 
 
@@ -154,9 +154,9 @@ def is_extension(filepath, ext):
     return file_ext in ext
 
 
-def get_lyrics_file(track, lyrics_dir):
+def get_lyricsx_file(track, lyrics_dir):
     """
-    Get lyrics file of given track
+    Get lyrics file of given track in LyricsX directory
 
     :param track: given track
     :param lyrics_dir: root directory of lyrics files
@@ -173,6 +173,10 @@ def get_lyrics_file(track, lyrics_dir):
         return None
 
 
+def get_lyrics_path(song):
+    return os.path.splitext(song)[0] + '.lrc'
+
+
 def parse_lyrics(filepath):
     """
     Parse lyrics file and convert it to walkman-compatible format
@@ -183,3 +187,21 @@ def parse_lyrics(filepath):
     :rtype: str
     """
     raise NotImplementedError
+
+
+def struct_lyrics(tracks, src_dir, dst_dir):
+    # get files
+    files = [t.location().path for t in tracks]
+    common_prefix = os.path.commonprefix(files)
+    relative_paths = [get_lyrics_path(f.replace(common_prefix, ''))
+                      for f in files]
+
+    progress = tqdm(tracks)
+    for idx, track in enumerate(progress):
+        lrc_src = get_lyricsx_file(track, src_dir)
+        if lrc_src is not None:
+            lrc_dst = os.path.join(dst_dir, relative_paths[idx])
+            if not os.path.exists(os.path.dirname(lrc_dst)):
+                os.makedirs(os.path.dirname(lrc_dst))
+            progress.set_description('Copying {}'.format(os.path.basename(lrc_dst)))
+            shutil.copy2(lrc_src, lrc_dst)
