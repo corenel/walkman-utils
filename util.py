@@ -355,6 +355,16 @@ def format_lyrics(lrc_file):
 
 
 def struct_lyrics_dir(tracks, src_dir, dst_dir):
+    """
+    Copy lyrics file to given directory with the same structure as tracks
+
+    :param tracks: list of tracks
+    :type tracks: list
+    :param src_dir: path to soruce directory
+    :type src_dir: str
+    :param dst_dir: path to target directory
+    :type dst_dir: str
+    """
     # get files
     files = [t.location().path for t in tracks]
     common_prefix = os.path.commonprefix(files)
@@ -373,7 +383,17 @@ def struct_lyrics_dir(tracks, src_dir, dst_dir):
             format_lyrics(lrc_dst)
 
 
-def generate_playlist_with_prefix(songs, prefix):
+def format_playlist_with_prefix(songs, prefix):
+    """
+    Format track list in relative paths with given prefix
+
+    :param songs: list of songs
+    :type songs: list[str]
+    :param prefix: path prefix
+    :type prefix: str
+    :return: track list in relative paths with given prefix
+    :rtype: list[str]
+    """
     _, songs_rel = split_filepath(songs)
     songs_with_prefix = [os.path.join(prefix, compose_str(song)).replace('/', '\\')
                          for song in songs_rel]

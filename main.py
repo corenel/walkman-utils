@@ -31,8 +31,8 @@ def create_m3u_playlist(playlists, walkman_dir, walkman_prefix):
     for playlist in progress:
         progress.set_description('{}'.format(os.path.basename(playlist)))
         songs_in_playlists = util.get_files_in_playlist(playlist)
-        songs_with_prefix = util.generate_playlist_with_prefix(songs_in_playlists,
-                                                               walkman_prefix)
+        songs_with_prefix = util.format_playlist_with_prefix(songs_in_playlists,
+                                                             walkman_prefix)
         with open(os.path.join(walkman_dir, '{}.m3u'.format(playlist)), 'w') as f:
             f.write('\n'.join(songs_with_prefix))
             f.write('\n')
