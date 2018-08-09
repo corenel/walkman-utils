@@ -64,9 +64,9 @@ if __name__ == '__main__':
                         walkman_dir=setting.WALKMAN_DIR,
                         walkman_prefix=setting.WALKMAN_PLAYLIST_PREFIX)
 
-    # create_lyrics_dir(playlists=setting.PLAYLISTS,
-    #                   lyrics_dir=setting.LYRICS_DIR,
-    #                   lyrics_source_dir=setting.LYRICS_SOURCE_DIR)
+    create_local_lyrics(playlists=setting.PLAYLISTS,
+                        lyrics_dir=setting.LYRICS_DIR,
+                        lyrics_source_dir=setting.LYRICS_SOURCE_DIR)
 
     sync_lyrics(playlists=setting.PLAYLISTS,
                 lyrics_dir=setting.LYRICS_DIR,

@@ -139,10 +139,10 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
     eps = 0.01
     for f in files_on_both_sides:
         if os.path.getmtime(os.path.join(root_src, f)) - eps > \
-                os.path.getmtime(os.path.join(root_dst, correct_japanese_voice(f))):
+                os.path.getmtime(os.path.join(root_dst, compose_str(f))):
             print(f)
             print(os.path.getmtime(os.path.join(root_src, f)))
-            print(os.path.getmtime(os.path.join(root_dst, correct_japanese_voice(f))))
+            print(os.path.getmtime(os.path.join(root_dst, compose_str(f))))
             to_be_updated.append(f)
         else:
             to_be_ignored.append(f)
@@ -170,22 +170,24 @@ def sync_filelists(to_be_updated, to_be_removed,
     if len(to_be_updated) > 0:
         progress = tqdm(sorted(to_be_updated))
         for file in progress:
-            progress.set_description('Updating {}'.format(os.path.basename(file)))
-            target_file = os.path.join(dst_dir, correct_japanese_voice(file))
-            target_dir = os.path.dirname(target_file)
-            if not os.path.exists(target_dir):
-                os.makedirs(target_dir)
-            shutil.copy2(os.path.join(src_dir, file),
-                         os.path.join(dst_dir, correct_japanese_voice(file)))
+            if os.path.exists(os.path.join(src_dir, file)):
+                progress.set_description('Updating {}'.format(os.path.basename(file)))
+                target_file = os.path.join(dst_dir, compose_str(file))
+                target_dir = os.path.dirname(target_file)
+                if not os.path.exists(target_dir):
+                    os.makedirs(target_dir)
+                shutil.copy2(os.path.join(src_dir, file),
+                             os.path.join(dst_dir, compose_str(file)))
     else:
         print('Nothing to update')
 
     if len(to_be_removed) > 0 and remove_unmatched:
         progress = tqdm(sorted(to_be_removed))
         for file in progress:
-            progress.set_description('Removing {}'.format(os.path.basename(file)))
-            target_file = os.path.join(dst_dir, correct_japanese_voice(file))
-            os.remove(target_file)
+            if os.path.exists(os.path.join(src_dir, file)):
+                progress.set_description('Removing {}'.format(os.path.basename(file)))
+                target_file = os.path.join(dst_dir, compose_str(file))
+                os.remove(target_file)
     else:
         print('Nothing to remove')
 
@@ -227,6 +229,14 @@ def get_lyricsx_file(track, lyrics_dir):
 
 
 def get_lyrics_path(song):
+    """
+    Convert song file path to corresponding lyrics file path
+
+    :param song: path to song file
+    :type song: str
+    :return: path to corresponding lyrics file
+    :rtype: str
+    """
     return os.path.splitext(song)[0] + '.lrc'
 
 
@@ -262,7 +272,7 @@ def struct_lyrics_dir(tracks, src_dir, dst_dir):
 
 def generate_playlist_with_prefix(songs, prefix):
     _, songs_rel = split_filepath(songs)
-    songs_with_prefix = [os.path.join(prefix, correct_japanese_voice(song)).replace('/', '\\')
+    songs_with_prefix = [os.path.join(prefix, compose_str(song)).replace('/', '\\')
                          for song in songs_rel]
     return songs_with_prefix
 
@@ -279,39 +289,46 @@ def str_to_ord(s):
     return [ord(c) for c in s]
 
 
-#
-#
-# def ord_to_str(ord_list):
-#     """
-#     Convert list of character orders to string
-#
-#     :param ord_list: list of character orders
-#     :type ord_list: int or list[int]
-#     :return: corresponding string
-#     :rtype: str
-#     """
-#     if isinstance(ord_list, int):
-#         ord_list = [ord_list]
-#     s = ''
-#     for o in ord_list:
-#         s += chr(o)
-#     return s
-#
-#
-# def locate_all_occurrence(l, e):
-#     """
-#     Return indices of all element occurrences in given list
-#
-#     :param l: given list
-#     :type l: list
-#     :param e: element to locate
-#     :return: indices of all occurrences
-#     :rtype: list
-#     """
-#     return [i for i, x in enumerate(l) if x == e]
+def ord_to_str(ord_list):
+    """
+    Convert list of character orders to string
+
+    :param ord_list: list of character orders
+    :type ord_list: int or list[int]
+    :return: corresponding string
+    :rtype: str
+    """
+    if isinstance(ord_list, int):
+        ord_list = [ord_list]
+    s = ''
+    for o in ord_list:
+        s += chr(o)
+    return s
 
 
-def correct_japanese_voice(s):
+def locate_all_occurrence(l, e):
+    """
+    Return indices of all element occurrences in given list
+
+    :param l: given list
+    :type l: list
+    :param e: element to locate
+    :return: indices of all occurrences
+    :rtype: list
+    """
+    return [i for i, x in enumerate(l) if x == e]
+
+
+def compose_str(s):
+    """
+    Replace decomposed character (like 0x3099 or 0x309a) in given string
+    with composed one
+
+    :param s: given string
+    :type s: str
+    :return: composed string
+    :rtype: str
+    """
     # char_list = str_to_ord(s)
     # corrected_list = []
     # voice_mark = locate_all_occurrence(char_list, 0x3099)
@@ -335,5 +352,14 @@ def correct_japanese_voice(s):
     return unicodedata.normalize('NFC', s)
 
 
-def restore_japanese_voice(s):
+def decompose_str(s):
+    """
+    Replace composed character in given string with decomposed one
+    (like 0x3099 or 0x309a)
+
+    :param s: given string
+    :type s: str
+    :return: decomposed string
+    :rtype: str
+    """
     return unicodedata.normalize('NFD', s)
