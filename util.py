@@ -41,6 +41,9 @@ def get_files_in_playlist(playlists):
     """
     Get file path of desired playlists in iTunes
 
+    Note that path to track file may contain decomposed japanese
+    character like `0x3099` and `0x309a`, which won"t recognized by walkman
+
     :param playlists: name of desired playlists
     :type playlists: str or list[str]
     :return: list of file path
@@ -58,7 +61,7 @@ def split_filepath(files):
     :param files: list of filepath
     :type files: list[str]
     :return: common prefix and relative filepath
-    :rtype: tuple(sre, list[str])
+    :rtype: tuple(str, list[str])
     """
     common_prefix = os.path.commonprefix(files)
     relative_paths = [f.replace(common_prefix, '') for f in files]
@@ -68,6 +71,9 @@ def split_filepath(files):
 def scan_directory(target, extension):
     """
     Scan given directory and get file lists
+
+    Note that `os.walk()` will return a path with decomposed japanese
+    character like `0x3099` and `0x309a` despite the real path is composed
 
     :param target: target directory
     :type target: str
@@ -93,6 +99,10 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
     """
     Compare two file lists
 
+    Note that `files_src`, `files_dst` and files in `root_src` may contain
+    decomposed japanese character like `0x3099` and `0x309a`.
+    While files in `root_dst` won't.
+
     :param files_src: list of files in source directory
     :type files_src: list[str]
     :param files_dst: list of files in source directory
@@ -104,14 +114,11 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
     :return: list of files to be updated, removed and ignored
     :rtype: tuple(list, list, list)
     """
-    to_be_updated = [x for x in files_src
-                     if correct_japanese_voice(x) not in files_dst]
-    to_be_removed = [x for x in files_dst
-                     if restore_japanese_voice(x) not in files_src]
+    to_be_updated = [x for x in files_src if x not in files_dst]
+    to_be_removed = [x for x in files_dst if x not in files_src]
     to_be_ignored = []
 
-    files_on_both_sides = [x for x in files_src
-                           if correct_japanese_voice(x) in files_dst]
+    files_on_both_sides = [x for x in files_src if x in files_dst]
     for f in files_on_both_sides:
         if os.path.getmtime(os.path.join(root_src, f)) > \
                 os.path.getmtime(os.path.join(root_dst, correct_japanese_voice(f))):
@@ -125,20 +132,41 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
 def sync_filelists(to_be_updated, to_be_removed,
                    src_dir, dst_dir,
                    remove_unmatched=False):
-    progress = tqdm(sorted(to_be_updated))
-    for file in progress:
-        progress.set_description('Updating {}'.format(os.path.basename(file)))
-        target_path = os.path.join(dst_dir, os.path.dirname(correct_japanese_voice(file)))
-        if not os.path.exists(target_path):
-            os.makedirs(target_path)
-        shutil.copy2(os.path.join(src_dir, file), target_path)
+    """
+    Sync list of files from source directory to target
 
-    if remove_unmatched:
+    :param to_be_updated: files to update
+    :type to_be_updated: list[str]
+    :param to_be_removed: files to remove
+    :type to_be_removed: list[str]
+    :param src_dir: path to source directory
+    :type src_dir: str
+    :param dst_dir: path to target directory
+    :type dst_dir: str
+    :param remove_unmatched: whether to remove unmatched files or not
+    :type remove_unmatched: bool
+    """
+    if len(to_be_updated) > 0:
+        progress = tqdm(sorted(to_be_updated))
+        for file in progress:
+            progress.set_description('Updating {}'.format(os.path.basename(file)))
+            target_file = os.path.join(dst_dir, correct_japanese_voice(file))
+            target_dir = os.path.dirname(target_file)
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+            shutil.copy2(os.path.join(src_dir, file),
+                         os.path.join(dst_dir, correct_japanese_voice(file)))
+    else:
+        print('Nothing to update')
+
+    if len(to_be_removed) > 0 and remove_unmatched:
         progress = tqdm(sorted(to_be_removed))
         for file in progress:
             progress.set_description('Removing {}'.format(os.path.basename(file)))
-            target_path = os.path.join(dst_dir, os.path.dirname(correct_japanese_voice(file)))
-            os.remove(target_path)
+            target_file = os.path.join(dst_dir, correct_japanese_voice(file))
+            os.remove(target_file)
+    else:
+        print('Nothing to remove')
 
 
 def is_extension(filepath, ext):
@@ -286,4 +314,3 @@ def correct_japanese_voice(s):
 
 def restore_japanese_voice(s):
     return unicodedata.normalize('NFD', s)
-
