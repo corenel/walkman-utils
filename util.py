@@ -1,9 +1,67 @@
 import os
+import re
+import click
 import shutil
 import unicodedata
 
 from appscript import app
 from tqdm import tqdm
+
+
+def confirm(text, fg='green', **kwargs):
+    """
+    Confirm prompt
+
+    :param text: prompt text
+    :type text: str
+    :param fg: foreground color
+    :type fg: str
+    :param kwargs: other arguments
+    :return: confirmation result
+    """
+    return click.confirm(
+        click.style('> {}'.format(text), fg=fg, bold=True), **kwargs)
+
+
+def status(text):
+    """
+    Print running status
+
+    :param text: status text
+    :type text: str
+    """
+    click.secho('{}'.format(text), fg='blue', bold=True)
+
+
+def info(text):
+    """
+    Print running info
+
+    :param text: status text
+    :type text: str
+    """
+    click.secho('{}'.format(text), fg='green', bold=True)
+
+
+def warning(text):
+    """
+    Print warning message
+
+    :param text: warning message
+    :type text: str
+    """
+    click.secho('{}'.format(text), fg='yellow', bold=True)
+
+
+def error(text):
+    """
+    Print error message
+
+    :param text: error message
+    :type text: str
+    """
+    click.secho('{}'.format(text), fg='red', bold=True)
+    # sys.exit(1)
 
 
 def get_itunes_playlists():
@@ -240,16 +298,60 @@ def get_lyrics_path(song):
     return os.path.splitext(song)[0] + '.lrc'
 
 
-def parse_lyrics(filepath):
+def format_timestamp(timestamp):
+    """
+    Format timestamp xx:xx.xxx as xx:xx.xx
+
+    :param timestamp: timestamp
+    :type timestamp: str
+    :return: formatted timestamp
+    :rtype: str
+    """
+    if len(re.findall('\d+:\d+\.\d\d\d', timestamp)) != 0:
+        timestamp = re.findall('\d+:\d+\.\d\d\d', timestamp)[0]
+        tsp = timestamp.split(':')
+        return '%s:%05.2f' % (tsp[0], float(tsp[1]))
+    elif len(re.findall('\d+:\d+\.\d\d', timestamp)) == 0:
+        # print(timestamp)
+        pass
+    return timestamp
+
+
+def format_lyrics(lrc_file):
     """
     Parse lyrics file and convert it to walkman-compatible format
 
-    :param filepath: path to lyrics file
-    :type filepath: str
+    :param lrc_file: path to lyrics file
+    :type lrc_file: str
     :return: lyrics in walkman-compatible format
     :rtype: str
     """
-    raise NotImplementedError
+    formatted = []
+    with open(lrc_file) as f:
+        lines = f.readlines()
+        lrc_lines = [
+            l.strip()
+            for l in lines
+            if re.findall('\[\d+:\d+\.\d+\]', l) != [] and '[tr]' not in l and '[tt]' not in l
+        ]
+        for idx, lrc_line in enumerate(lrc_lines):
+            if idx + 1 == len(lrc_lines):
+                continue
+            curr_timestamp = re.findall('\d+:\d+\.\d+', lrc_line)[0]
+            next_timestamp = re.findall('\d+:\d+\.\d+', lrc_lines[idx + 1])[0]
+            curr_timestamp_formatted = format_timestamp(curr_timestamp)
+            next_timestamp_formatted = format_timestamp(next_timestamp)
+
+            curr_line_split = lrc_line.split('[{}]'.format(curr_timestamp))
+            curr_lyrics = curr_line_split[1] if len(
+                curr_line_split) == 2 else ''
+
+            formatted.append('[{}][{}]{}'.format(curr_timestamp_formatted,
+                                                 next_timestamp_formatted,
+                                                 curr_lyrics))
+
+    with open(lrc_file, 'w') as f:
+        f.write('\n'.join(formatted))
 
 
 def struct_lyrics_dir(tracks, src_dir, dst_dir):
@@ -268,6 +370,7 @@ def struct_lyrics_dir(tracks, src_dir, dst_dir):
                 os.makedirs(os.path.dirname(lrc_dst))
             progress.set_description('Copying {}'.format(os.path.basename(lrc_dst)))
             shutil.copy2(lrc_src, lrc_dst)
+            format_lyrics(lrc_dst)
 
 
 def generate_playlist_with_prefix(songs, prefix):

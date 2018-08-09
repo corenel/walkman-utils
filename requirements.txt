@@ -1,2 +1,3 @@
-appscript
 tqdm
+click
+appscript
