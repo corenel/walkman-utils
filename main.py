@@ -56,8 +56,12 @@ def sync_lyrics(playlists, lyrics_dir, walkman_dir, remove_unmatched=False):
 
 
 if __name__ == '__main__':
-    sync_playlist(playlists=setting.PLAYLISTS,
-                  walkman_dir=setting.WALKMAN_DIR)
+    # sync_playlist(playlists=setting.playlists,
+    #               walkman_dir=setting.walkman_dir)
+
+    create_m3u_playlist(playlists=setting.PLAYLISTS,
+                        walkman_dir=setting.WALKMAN_DIR,
+                        walkman_prefix=setting.WALKMAN_PLAYLIST_PREFIX)
 
     create_m3u_playlist(playlists=setting.PLAYLISTS,
                         walkman_dir=setting.WALKMAN_DIR,
