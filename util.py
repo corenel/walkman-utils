@@ -54,6 +54,23 @@ def get_files_in_playlist(playlists):
     return files_in_playlist
 
 
+def get_lyrics_files_in_playlist(playlists):
+    """
+    Get lyrics file path of desired playlists in iTunes
+
+    Note that path to lyrics file may contain decomposed japanese
+    character like `0x3099` and `0x309a`, which won"t recognized by walkman
+
+    :param playlists: name of desired playlists
+    :type playlists: str or list[str]
+    :return: list of lyrics file path
+    :rtype: list[str]
+    """
+    tracks_in_playlist = get_tracks_in_playlist(playlists)
+    files_in_playlist = [get_lyrics_path(t.location().path) for t in tracks_in_playlist]
+    return files_in_playlist
+
+
 def split_filepath(files):
     """
     get common prefix and relative filepath
@@ -119,9 +136,13 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
     to_be_ignored = []
 
     files_on_both_sides = [x for x in files_src if x in files_dst]
+    eps = 0.01
     for f in files_on_both_sides:
-        if os.path.getmtime(os.path.join(root_src, f)) > \
+        if os.path.getmtime(os.path.join(root_src, f)) - eps > \
                 os.path.getmtime(os.path.join(root_dst, correct_japanese_voice(f))):
+            print(f)
+            print(os.path.getmtime(os.path.join(root_src, f)))
+            print(os.path.getmtime(os.path.join(root_dst, correct_japanese_voice(f))))
             to_be_updated.append(f)
         else:
             to_be_ignored.append(f)
@@ -221,7 +242,7 @@ def parse_lyrics(filepath):
     raise NotImplementedError
 
 
-def struct_lyrics(tracks, src_dir, dst_dir):
+def struct_lyrics_dir(tracks, src_dir, dst_dir):
     # get files
     files = [t.location().path for t in tracks]
     common_prefix = os.path.commonprefix(files)
@@ -232,7 +253,7 @@ def struct_lyrics(tracks, src_dir, dst_dir):
     for idx, track in enumerate(progress):
         lrc_src = get_lyricsx_file(track, src_dir)
         if lrc_src is not None:
-            lrc_dst = os.path.join(dst_dir, correct_japanese_voice(relative_paths[idx]))
+            lrc_dst = os.path.join(dst_dir, relative_paths[idx])
             if not os.path.exists(os.path.dirname(lrc_dst)):
                 os.makedirs(os.path.dirname(lrc_dst))
             progress.set_description('Copying {}'.format(os.path.basename(lrc_dst)))
@@ -246,16 +267,18 @@ def generate_playlist_with_prefix(songs, prefix):
     return songs_with_prefix
 
 
-# def str_to_ord(s):
-#     """
-#     Convert string to list of character orders
-#
-#     :param s: given string
-#     :type s: str
-#     :return: list of character orders
-#     :rtype: list[int]
-#     """
-#     return [ord(c) for c in s]
+def str_to_ord(s):
+    """
+    Convert string to list of character orders
+
+    :param s: given string
+    :type s: str
+    :return: list of character orders
+    :rtype: list[int]
+    """
+    return [ord(c) for c in s]
+
+
 #
 #
 # def ord_to_str(ord_list):
