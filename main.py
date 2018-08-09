@@ -1,7 +1,6 @@
 import os
 import util
 import setting
-import shutil
 
 from tqdm import tqdm
 
@@ -22,6 +21,17 @@ def sync_playlist(playlists, walkman_dir, remove_unmatched=False):
                         remove_unmatched=remove_unmatched)
 
 
+def create_m3u_playlist(playlists, walkman_dir, walkman_prefix):
+    progress = tqdm(playlists)
+    for playlist in progress:
+        songs_in_playlists = util.get_files_in_playlist(playlist)
+        songs_with_prefix = util.generate_playlist_with_prefix(songs_in_playlists,
+                                                               walkman_prefix)
+        with open(os.path.join(walkman_dir, '{}.m3u'.format(playlist)), 'w') as f:
+            f.write('\n'.join(songs_with_prefix))
+            f.write('\n')
+
+
 def create_lyrics_dir(playlists, lyrics_dir, lyrics_source_dir):
     tracks_in_playlist = util.get_tracks_in_playlist(playlists)
     util.struct_lyrics(tracks_in_playlist,
@@ -29,7 +39,7 @@ def create_lyrics_dir(playlists, lyrics_dir, lyrics_source_dir):
                        dst_dir=lyrics_dir)
 
 
-def sync_lyrics(lyrics_dir, walkman_dir, remove_unmatched=False):
+def sync_lyrics(playlists, lyrics_dir, walkman_dir, remove_unmatched=False):
     # Get lyrics list
     lyrics_on_local = util.scan_directory(lyrics_dir, setting.LYRICS_FILE_EXT)
     _, lyrics_on_local_rel = util.split_filepath(lyrics_on_local)
@@ -49,9 +59,14 @@ if __name__ == '__main__':
     sync_playlist(playlists=setting.PLAYLISTS,
                   walkman_dir=setting.WALKMAN_DIR)
 
-    # create_lyrics_dir(playlists=setting.PLAYLISTS,
-    #                   lyrics_dir=setting.LYRICS_DIR,
-    #                   lyrics_source_dir=setting.LYRICS_SOURCE_DIR)
+    create_m3u_playlist(playlists=setting.PLAYLISTS,
+                        walkman_dir=setting.WALKMAN_DIR,
+                        walkman_prefix=setting.WALKMAN_PLAYLIST_PREFIX)
 
-    sync_lyrics(lyrics_dir=setting.LYRICS_DIR,
+    create_lyrics_dir(playlists=setting.PLAYLISTS,
+                      lyrics_dir=setting.LYRICS_DIR,
+                      lyrics_source_dir=setting.LYRICS_SOURCE_DIR)
+
+    sync_lyrics(playlists=setting.PLAYLISTS,
+                lyrics_dir=setting.LYRICS_DIR,
                 walkman_dir=setting.WALKMAN_DIR)
