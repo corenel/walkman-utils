@@ -4,7 +4,7 @@ import click
 import shutil
 import unicodedata
 
-from appscript import app
+from appscript import app, k
 from tqdm import tqdm
 
 
@@ -19,8 +19,8 @@ def confirm(text, fg='green', **kwargs):
     :param kwargs: other arguments
     :return: confirmation result
     """
-    return click.confirm(
-        click.style('> {}'.format(text), fg=fg, bold=True), **kwargs)
+    return click.confirm(click.style('> {}'.format(text), fg=fg, bold=True),
+                         **kwargs)
 
 
 def status(text):
@@ -95,6 +95,10 @@ def get_tracks_in_playlist(playlists):
     return tracks_in_playlist
 
 
+def valid_value(value):
+    return value != k.missing_value
+
+
 def get_files_in_playlist(playlists):
     """
     Get file path of desired playlists in iTunes
@@ -108,7 +112,10 @@ def get_files_in_playlist(playlists):
     :rtype: list[str]
     """
     tracks_in_playlist = get_tracks_in_playlist(playlists)
-    files_in_playlist = [t.location().path for t in tracks_in_playlist]
+    files_in_playlist = [
+        t.location().path for t in tracks_in_playlist
+        if valid_value(t.location())
+    ]
     return files_in_playlist
 
 
@@ -125,7 +132,10 @@ def get_lyrics_files_in_playlist(playlists):
     :rtype: list[str]
     """
     tracks_in_playlist = get_tracks_in_playlist(playlists)
-    files_in_playlist = [get_lyrics_path(t.location().path) for t in tracks_in_playlist]
+    files_in_playlist = [
+        get_lyrics_path(t.location().path) for t in tracks_in_playlist
+        if valid_value(t.location())
+    ]
     return files_in_playlist
 
 
@@ -208,8 +218,10 @@ def compare_filelists(files_src, files_dst, root_src, root_dst):
     return to_be_updated, to_be_removed, to_be_ignored
 
 
-def sync_filelists(to_be_updated, to_be_removed,
-                   src_dir, dst_dir,
+def sync_filelists(to_be_updated,
+                   to_be_removed,
+                   src_dir,
+                   dst_dir,
                    remove_unmatched=False):
     """
     Sync list of files from source directory to target
@@ -229,7 +241,8 @@ def sync_filelists(to_be_updated, to_be_removed,
         progress = tqdm(sorted(to_be_updated))
         for file in progress:
             if os.path.exists(os.path.join(src_dir, file)):
-                progress.set_description('Updating {}'.format(os.path.basename(file)))
+                progress.set_description('Updating {}'.format(
+                    os.path.basename(file)))
                 target_file = os.path.join(dst_dir, compose_str(file))
                 target_dir = os.path.dirname(target_file)
                 if not os.path.exists(target_dir):
@@ -243,7 +256,8 @@ def sync_filelists(to_be_updated, to_be_removed,
         progress = tqdm(sorted(to_be_removed))
         for file in progress:
             if os.path.exists(os.path.join(src_dir, file)):
-                progress.set_description('Removing {}'.format(os.path.basename(file)))
+                progress.set_description('Removing {}'.format(
+                    os.path.basename(file)))
                 target_file = os.path.join(dst_dir, compose_str(file))
                 os.remove(target_file)
     else:
@@ -330,9 +344,9 @@ def format_lyrics(lrc_file):
     with open(lrc_file) as f:
         lines = f.readlines()
         lrc_lines = [
-            l.strip()
-            for l in lines
-            if re.findall('\[\d+:\d+\.\d+\]', l) != [] and '[tr]' not in l and '[tt]' not in l
+            l.strip() for l in lines
+            if re.findall('\[\d+:\d+\.\d+\]', l) != [] and '[tr]' not in l
+            and '[tt]' not in l
         ]
         for idx, lrc_line in enumerate(lrc_lines):
             if idx + 1 == len(lrc_lines):
@@ -366,10 +380,11 @@ def struct_lyrics_dir(tracks, src_dir, dst_dir):
     :type dst_dir: str
     """
     # get files
-    files = [t.location().path for t in tracks]
+    files = [t.location().path for t in tracks if valid_value(t.location())]
     common_prefix = os.path.commonprefix(files)
-    relative_paths = [get_lyrics_path(f.replace(common_prefix, ''))
-                      for f in files]
+    relative_paths = [
+        get_lyrics_path(f.replace(common_prefix, '')) for f in files
+    ]
 
     progress = tqdm(tracks)
     for idx, track in enumerate(progress):
@@ -378,7 +393,8 @@ def struct_lyrics_dir(tracks, src_dir, dst_dir):
             lrc_dst = os.path.join(dst_dir, relative_paths[idx])
             if not os.path.exists(os.path.dirname(lrc_dst)):
                 os.makedirs(os.path.dirname(lrc_dst))
-            progress.set_description('Copying {}'.format(os.path.basename(lrc_dst)))
+            progress.set_description('Copying {}'.format(
+                os.path.basename(lrc_dst)))
             shutil.copy2(lrc_src, lrc_dst)
             format_lyrics(lrc_dst)
 
@@ -395,8 +411,10 @@ def format_playlist_with_prefix(songs, prefix):
     :rtype: list[str]
     """
     _, songs_rel = split_filepath(songs)
-    songs_with_prefix = [os.path.join(prefix, compose_str(song)).replace('/', '\\')
-                         for song in songs_rel]
+    songs_with_prefix = [
+        os.path.join(prefix, compose_str(song)).replace('/', '\\')
+        for song in songs_rel
+    ]
     return songs_with_prefix
 
 
