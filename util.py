@@ -139,17 +139,22 @@ def get_lyrics_files_in_playlist(playlists):
     return files_in_playlist
 
 
-def split_filepath(files):
+def split_filepath(files, prefix=None):
     """
     get common prefix and relative filepath
 
     :param files: list of filepath
     :type files: list[str]
+    :param prefix: common prefix of music files
+    :type prefix: str
     :return: common prefix and relative filepath
     :rtype: tuple(str, list[str])
     """
     common_prefix = os.path.commonprefix(files)
-    relative_paths = [f.replace(common_prefix, '') for f in files]
+    if prefix is not None:
+        print('\n'.join([f for f in files if not f.startswith(prefix)]))
+        assert common_prefix == prefix
+    relative_paths = [os.path.relpath(f, common_prefix) for f in files]
     return common_prefix, relative_paths
 
 

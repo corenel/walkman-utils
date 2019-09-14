@@ -9,7 +9,9 @@ def sync_playlist(playlists, walkman_dir, remove_unmatched=False):
     # Get music list
     util.status('Getting songs in playlists from iTunes')
     songs_in_playlists = util.get_files_in_playlist(playlists)
-    itunes_folder, songs_in_playlists_rel = util.split_filepath(songs_in_playlists)
+    itunes_folder, songs_in_playlists_rel = util.split_filepath(
+        songs_in_playlists,
+        setting.ITUNES_MEDIA_ROOT)
     util.status('Getting songs on Walkman')
     music_on_walkman = util.scan_directory(walkman_dir, setting.MUSIC_FILE_EXT)
     util.status('Comparing song lists')
