@@ -64,6 +64,26 @@ def error(text):
     # sys.exit(1)
 
 
+APPS = {
+    'iTunes': {
+        'binary': '/Applications/iTunes.app/Contents/MacOS/iTunes',
+    },
+    'Music': {
+        'binary': '/System/Applications/Music.app/Contents/MacOS/Music',
+    }
+}
+
+
+def detect_app():
+    """
+    Detect application (iTunes or Music)
+    """
+    for music_app, config in APPS.items():
+        if os.path.isfile(config['binary']):
+            return music_app
+    raise RuntimeError('Error detecting music player application')
+
+
 def get_itunes_playlists():
     """
     Get list of playlist from iTunes
@@ -71,7 +91,7 @@ def get_itunes_playlists():
     :return: playlists in iTunes
     :rtype: list
     """
-    return app('iTunes').user_playlists()
+    return app(detect_app()).user_playlists()
 
 
 def get_tracks_in_playlist(playlists):
@@ -112,10 +132,10 @@ def get_files_in_playlist(playlists):
     :rtype: list[str]
     """
     tracks_in_playlist = get_tracks_in_playlist(playlists)
-    files_in_playlist = [
-        t.location().path for t in tracks_in_playlist
-        if valid_value(t.location())
-    ]
+    files_in_playlist = []
+    for t in tqdm(tracks_in_playlist):
+        if valid_value(t.location()):
+            files_in_playlist.append(t.location().path)
     return files_in_playlist
 
 
@@ -133,7 +153,8 @@ def get_lyrics_files_in_playlist(playlists):
     """
     tracks_in_playlist = get_tracks_in_playlist(playlists)
     files_in_playlist = [
-        get_lyrics_path(t.location().path) for t in tracks_in_playlist
+        get_lyrics_path(t.location().path)
+        for t in tracks_in_playlist
         if valid_value(t.location())
     ]
     return files_in_playlist
@@ -349,9 +370,10 @@ def format_lyrics(lrc_file):
     with open(lrc_file) as f:
         lines = f.readlines()
         lrc_lines = [
-            l.strip() for l in lines
-            if re.findall('\[\d+:\d+\.\d+\]', l) != [] and '[tr]' not in l
-            and '[tt]' not in l
+            l.strip()
+            for l in lines
+            if re.findall('\[\d+:\d+\.\d+\]', l) != [] and '[tr]' not in l and
+            '[tt]' not in l
         ]
         for idx, lrc_line in enumerate(lrc_lines):
             if idx + 1 == len(lrc_lines):
